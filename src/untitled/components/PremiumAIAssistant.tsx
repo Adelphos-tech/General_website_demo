@@ -155,7 +155,22 @@ export function PremiumAIAssistant() {
       <main className="relative z-10 min-h-[calc(100vh-120px)] px-6">
         {isListening ? (
           <div className="mx-auto w-full max-w-[1400px] grid grid-cols-1 md:grid-cols-[280px_1fr] gap-10 pt-10 items-start">
-            {/* Left: compact globe with hint */}
+            {/* Mobile: compact globe above conversation */}
+            <div className="flex md:hidden flex-col items-center gap-3">
+              <div className="scale-[0.7]">
+                <InteractiveGlobe
+                  onVoiceStart={handleVoiceStart}
+                  onVoiceEnd={handleVoiceEnd}
+                  isListening={isListening}
+                  isProcessing={isProcessing}
+                />
+              </div>
+              <div className="text-[12px] leading-tight text-white/70 text-center px-3">
+                Tap the globe to start talking to our experts instantly
+              </div>
+            </div>
+
+            {/* Desktop: compact globe sidebar */}
             <div className="hidden md:flex flex-col items-center gap-4 sticky top-24 h-min">
               <div className="scale-[0.45] origin-top-left">
                 <InteractiveGlobe
@@ -167,7 +182,7 @@ export function PremiumAIAssistant() {
               </div>
               <div className="text-[11px] leading-tight text-white/70 text-center">
                 Tap to continue speaking<br />
-                Tap the globe to start talking
+                Tap the globe to start talking to our experts instantly
               </div>
             </div>
 

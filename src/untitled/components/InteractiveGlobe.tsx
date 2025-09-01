@@ -92,7 +92,7 @@ export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProc
           ? "Listening... Tap to stop" 
           : isProcessing 
             ? "Processing your message..." 
-            : "Tap the globe to start talking"
+            : "Tap the globe to start talking to our experts instantly"
         }
       </motion.p>
     </div>

@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
+import { useState } from 'react';
 import { ScrollArea } from './ui/scroll-area';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { User, Sparkles } from 'lucide-react';
@@ -18,6 +19,13 @@ interface PremiumConversationProps {
 export function PremiumConversation({ messages, isVisible }: PremiumConversationProps) {
   if (!isVisible || messages.length <= 1) return null;
 
+  // Collapse-older: show only last K messages until expanded
+  const K = 30; // number of most-recent messages to always show
+  const tailStart = Math.max(1, messages.length - K);
+  const older = messages.slice(1, tailStart);
+  const tail = messages.slice(tailStart);
+  const [showOlder, setShowOlder] = useState(false);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -35,8 +43,18 @@ export function PremiumConversation({ messages, isVisible }: PremiumConversation
         
         <ScrollArea className="h-[70vh]">
           <div className="p-6 space-y-6">
+            {!showOlder && older.length > 0 && (
+              <div className="flex justify-center">
+                <button
+                  className="px-3 py-1.5 text-sm rounded-full bg-white/10 hover:bg-white/15 border border-white/20 text-white/80"
+                  onClick={() => setShowOlder(true)}
+                >
+                  Show older ({older.length})
+                </button>
+              </div>
+            )}
             <AnimatePresence>
-              {messages.slice(1).map((message, index) => (
+              {(showOlder ? older.concat(tail) : tail).map((message, index) => (
                 <motion.div
                   key={message.id}
                   initial={{ opacity: 0, x: message.isUser ? 50 : -50 }}
