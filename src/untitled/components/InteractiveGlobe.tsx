@@ -35,11 +35,11 @@ export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProc
       <motion.div
         className={"absolute w-80 h-80 rounded-full bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-orange-500/20 blur-xl"}
         animate={{
-          scale: pulseAnimation ? [1, 1.2, 1] : 1,
-          opacity: pulseAnimation ? [0.3, 0.6, 0.3] : 0.2,
+          scale: pulseAnimation ? (isProcessing ? [1, 1.35, 1] : [1, 1.2, 1]) : 1,
+          opacity: pulseAnimation ? (isProcessing ? [0.4, 0.85, 0.4] : [0.3, 0.6, 0.3]) : 0.2,
         }}
         transition={{
-          duration: 2,
+          duration: isProcessing ? 1.2 : 2,
           repeat: pulseAnimation ? Infinity : 0,
           ease: "easeInOut"
         }}
@@ -49,11 +49,11 @@ export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProc
       <motion.div
         className={"absolute w-72 h-72 rounded-full bg-gradient-to-r from-purple-400/30 via-pink-400/30 to-orange-400/30 blur-lg"}
         animate={{
-          scale: pulseAnimation ? [1, 1.15, 1] : 1,
-          opacity: pulseAnimation ? [0.4, 0.7, 0.4] : 0.3,
+          scale: pulseAnimation ? (isProcessing ? [1, 1.25, 1] : [1, 1.15, 1]) : 1,
+          opacity: pulseAnimation ? (isProcessing ? [0.5, 0.8, 0.5] : [0.4, 0.7, 0.4]) : 0.3,
         }}
         transition={{
-          duration: 1.5,
+          duration: isProcessing ? 1.0 : 1.5,
           repeat: pulseAnimation ? Infinity : 0,
           ease: "easeInOut",
           delay: 0.2
@@ -67,10 +67,10 @@ export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProc
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         animate={{
-          scale: pulseAnimation ? [1, 1.08, 1] : 1,
+          scale: pulseAnimation ? (isProcessing ? [1, 1.15, 1] : [1, 1.08, 1]) : 1,
         }}
         transition={{
-          duration: 1.2,
+          duration: isProcessing ? 0.9 : 1.2,
           repeat: pulseAnimation ? Infinity : 0,
           ease: "easeInOut",
           delay: 0.1
