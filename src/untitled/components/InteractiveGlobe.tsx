@@ -30,15 +30,30 @@ export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProc
     }
   };
 
-  // Clamp and derive animation intensities from volume
+  // Clamp and derive animation intensities from volume + state
   const v = Math.max(0, Math.min(1, volume));
-  const talkBoost = isProcessing ? 1 : 0.7;
-  const outerAmp = (isProcessing ? 0.20 : 0.15) + 0.25 * v * talkBoost; // scale delta
-  const middleAmp = (isProcessing ? 0.14 : 0.12) + 0.18 * v * talkBoost;
-  const globeAmp  = (isProcessing ? 0.10 : 0.08) + 0.10 * v * talkBoost;
-  const outerOpacity = 0.3 + 0.5 * v * talkBoost;
-  const middleOpacity = 0.35 + 0.45 * v * talkBoost;
-  const dur = Math.max(0.6, (isProcessing ? 1.1 : 1.6) - v * 0.4);
+  const idle = !isListening && !isProcessing;
+  let outerAmp: number, middleAmp: number, globeAmp: number;
+  let outerOpacity: number, middleOpacity: number, dur: number;
+
+  if (idle) {
+    // Gentle, regular glow while idle
+    outerAmp = 0.08; // ±8%
+    middleAmp = 0.06;
+    globeAmp  = 0.04;
+    outerOpacity = 0.35;
+    middleOpacity = 0.4;
+    dur = 2.6;
+  } else {
+    // Talking/listening: respond to live volume
+    const talkBoost = isProcessing ? 1 : 0.7;
+    outerAmp = (isProcessing ? 0.20 : 0.15) + 0.25 * v * talkBoost;
+    middleAmp = (isProcessing ? 0.14 : 0.12) + 0.18 * v * talkBoost;
+    globeAmp  = (isProcessing ? 0.10 : 0.08) + 0.10 * v * talkBoost;
+    outerOpacity = 0.3 + 0.5 * v * talkBoost;
+    middleOpacity = 0.35 + 0.45 * v * talkBoost;
+    dur = Math.max(0.6, (isProcessing ? 1.1 : 1.6) - v * 0.4);
+  }
 
   return (
     <div className="relative flex items-center justify-center">
@@ -71,7 +86,14 @@ export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProc
         animate={{ scale: pulseAnimation ? [1, 1 + globeAmp, 1] : 1 }}
         transition={{ duration: Math.max(0.5, dur - 0.3), repeat: pulseAnimation ? Infinity : 0, ease: "easeInOut", delay: 0.1 }}
       >
-        <Component031 />
+        {/* Rotate the globe slowly while idle */}
+        <motion.div
+          style={{ width: '100%', height: '100%' }}
+          animate={idle ? { rotate: 360 } : { rotate: 0 }}
+          transition={idle ? { repeat: Infinity, duration: 40, ease: 'linear' } : { duration: 0 }}
+        >
+          <Component031 />
+        </motion.div>
         
         {/* Voice state overlay removed as requested */}
       </motion.div>
