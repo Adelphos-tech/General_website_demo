@@ -89,6 +89,25 @@ Any static host (Vercel/Netlify/etc.).
   - `VITE_VAPI_ASSISTANT_ID` (optional)
 - Use an HTTPS domain so mic permissions work across devices
 
+### Netlify
+
+This repo includes a `netlify.toml` with a working configuration.
+
+- Build command: `npm run build`
+- Publish directory: `dist`
+- Node: `18` (set in `netlify.toml`)
+- SPA redirects: handled via `netlify.toml` (`/* -> /index.html`)
+
+Steps:
+1. Connect repo in Netlify → GitHub → `Adelphos-tech/voice-agent-website`.
+2. Site settings → Environment → Add:
+   - `VITE_VAPI_PUBLIC_KEY=YOUR_PUBLIC_KEY`
+   - `VITE_VAPI_ASSISTANT_ID=YOUR_ASSISTANT_ID` (optional)
+3. Deploy. Open the live HTTPS URL.
+4. Routes:
+   - `/` split site (real‑estate + assistant)
+   - `/assistant` assistant‑only
+
 ## Troubleshooting
 
 - White screen at start: check `.env.local` — `VITE_VAPI_PUBLIC_KEY` is required
