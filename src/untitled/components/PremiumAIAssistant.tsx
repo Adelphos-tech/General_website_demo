@@ -25,6 +25,7 @@ export function PremiumAIAssistant() {
   
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [volume, setVolume] = useState(0);
   const [showConversation, setShowConversation] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   // Vapi client
@@ -46,6 +47,7 @@ export function PremiumAIAssistant() {
     v.on('call-end', () => { setIsListening(false); setIsProcessing(false); });
     v.on('speech-start', () => setIsProcessing(true));
     v.on('speech-end', () => setIsProcessing(false));
+    v.on('volume-level', (lvl: number) => setVolume(Math.max(0, Math.min(1, lvl))));
     v.on('message', (m: any) => {
       if (m?.type === 'transcript' && m.transcriptType === 'final') {
         const id = String(Date.now());
@@ -163,6 +165,7 @@ export function PremiumAIAssistant() {
                   onVoiceEnd={handleVoiceEnd}
                   isListening={isListening}
                   isProcessing={isProcessing}
+                  volume={volume}
                 />
               </div>
               <div className="text-[12px] leading-tight text-white/70 text-center px-3">
@@ -218,6 +221,7 @@ export function PremiumAIAssistant() {
                 onVoiceEnd={handleVoiceEnd}
                 isListening={isListening}
                 isProcessing={isProcessing}
+                volume={volume}
               />
             </motion.div>
             <PremiumConversation messages={messages} isVisible={showConversation} />

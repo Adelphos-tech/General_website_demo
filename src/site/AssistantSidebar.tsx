@@ -17,6 +17,7 @@ export default function AssistantSidebar() {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const vapiRef = useRef<Vapi | null>(null);
+  const [volume, setVolume] = useState(0);
   const VAPI_PUBLIC_KEY = (import.meta as any).env.VITE_VAPI_PUBLIC_KEY as string | undefined;
   const VAPI_ASSISTANT_ID = (import.meta as any).env.VITE_VAPI_ASSISTANT_ID as string | undefined;
 
@@ -31,6 +32,7 @@ export default function AssistantSidebar() {
     v.on('call-end', () => { setIsListening(false); setIsProcessing(false); });
     v.on('speech-start', () => setIsProcessing(true));
     v.on('speech-end', () => setIsProcessing(false));
+    v.on('volume-level', (lvl: number) => setVolume(Math.max(0, Math.min(1, lvl))));
     v.on('message', (m: any) => {
       if (m?.type === 'transcript' && m.transcriptType === 'final') {
         const id = String(Date.now());
@@ -59,7 +61,7 @@ export default function AssistantSidebar() {
   return (
     <div className="assistant-sidebar">
       <div className="assistant-globe">
-        <InteractiveGlobe onVoiceStart={start} onVoiceEnd={stop} isListening={isListening} isProcessing={isProcessing} />
+        <InteractiveGlobe onVoiceStart={start} onVoiceEnd={stop} isListening={isListening} isProcessing={isProcessing} volume={volume} />
       </div>
       <div className="assistant-chat">
         <PremiumConversation messages={messages} isVisible={true} />
@@ -67,4 +69,3 @@ export default function AssistantSidebar() {
     </div>
   );
 }
-

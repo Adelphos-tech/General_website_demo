@@ -8,9 +8,10 @@ interface InteractiveGlobeProps {
   onVoiceEnd: () => void;
   isListening: boolean;
   isProcessing: boolean;
+  volume?: number; // 0..1
 }
 
-export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProcessing }: InteractiveGlobeProps) {
+export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProcessing, volume = 0 }: InteractiveGlobeProps) {
   const [pulseAnimation, setPulseAnimation] = useState(false);
 
   useEffect(() => {
@@ -29,35 +30,36 @@ export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProc
     }
   };
 
+  // Clamp and derive animation intensities from volume
+  const v = Math.max(0, Math.min(1, volume));
+  const talkBoost = isProcessing ? 1 : 0.7;
+  const outerAmp = (isProcessing ? 0.20 : 0.15) + 0.25 * v * talkBoost; // scale delta
+  const middleAmp = (isProcessing ? 0.14 : 0.12) + 0.18 * v * talkBoost;
+  const globeAmp  = (isProcessing ? 0.10 : 0.08) + 0.10 * v * talkBoost;
+  const outerOpacity = 0.3 + 0.5 * v * talkBoost;
+  const middleOpacity = 0.35 + 0.45 * v * talkBoost;
+  const dur = Math.max(0.6, (isProcessing ? 1.1 : 1.6) - v * 0.4);
+
   return (
     <div className="relative flex items-center justify-center">
       {/* Outer glow ring */}
       <motion.div
         className={"absolute w-80 h-80 rounded-full bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-orange-500/20 blur-xl"}
         animate={{
-          scale: pulseAnimation ? (isProcessing ? [1, 1.35, 1] : [1, 1.2, 1]) : 1,
-          opacity: pulseAnimation ? (isProcessing ? [0.4, 0.85, 0.4] : [0.3, 0.6, 0.3]) : 0.2,
+          scale: pulseAnimation ? [1, 1 + outerAmp, 1] : 1,
+          opacity: pulseAnimation ? [outerOpacity * 0.7, outerOpacity, outerOpacity * 0.7] : 0.2,
         }}
-        transition={{
-          duration: isProcessing ? 1.2 : 2,
-          repeat: pulseAnimation ? Infinity : 0,
-          ease: "easeInOut"
-        }}
+        transition={{ duration: dur, repeat: pulseAnimation ? Infinity : 0, ease: "easeInOut" }}
       />
       
       {/* Middle glow ring */}
       <motion.div
         className={"absolute w-72 h-72 rounded-full bg-gradient-to-r from-purple-400/30 via-pink-400/30 to-orange-400/30 blur-lg"}
         animate={{
-          scale: pulseAnimation ? (isProcessing ? [1, 1.25, 1] : [1, 1.15, 1]) : 1,
-          opacity: pulseAnimation ? (isProcessing ? [0.5, 0.8, 0.5] : [0.4, 0.7, 0.4]) : 0.3,
+          scale: pulseAnimation ? [1, 1 + middleAmp, 1] : 1,
+          opacity: pulseAnimation ? [middleOpacity * 0.7, middleOpacity, middleOpacity * 0.7] : 0.3,
         }}
-        transition={{
-          duration: isProcessing ? 1.0 : 1.5,
-          repeat: pulseAnimation ? Infinity : 0,
-          ease: "easeInOut",
-          delay: 0.2
-        }}
+        transition={{ duration: Math.max(0.5, dur - 0.2), repeat: pulseAnimation ? Infinity : 0, ease: "easeInOut", delay: 0.2 }}
       />
 
       {/* Globe container */}
@@ -66,15 +68,8 @@ export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProc
         onClick={handleGlobeClick}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        animate={{
-          scale: pulseAnimation ? (isProcessing ? [1, 1.15, 1] : [1, 1.08, 1]) : 1,
-        }}
-        transition={{
-          duration: isProcessing ? 0.9 : 1.2,
-          repeat: pulseAnimation ? Infinity : 0,
-          ease: "easeInOut",
-          delay: 0.1
-        }}
+        animate={{ scale: pulseAnimation ? [1, 1 + globeAmp, 1] : 1 }}
+        transition={{ duration: Math.max(0.5, dur - 0.3), repeat: pulseAnimation ? Infinity : 0, ease: "easeInOut", delay: 0.1 }}
       >
         <Component031 />
         
