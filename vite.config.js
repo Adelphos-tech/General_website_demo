@@ -50,12 +50,12 @@ export default defineConfig({
     },
   },
   server: {
-    host: true,
-    https: true,
+    host: '0.0.0.0',
+    https: false,
   },
   preview: {
     host: true,
-    https: true,
+    https: false,
   },
   build: {
     outDir: 'dist',

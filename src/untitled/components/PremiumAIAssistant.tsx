@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { InteractiveGlobe } from './InteractiveGlobe';
 import { PremiumConversation } from './PremiumConversation';
 import { Button } from './ui/button';
+import { Switch } from './ui/switch';
 import { Settings, Menu, X } from 'lucide-react';
 import Vapi from '@vapi-ai/web';
 
@@ -28,6 +29,9 @@ export function PremiumAIAssistant() {
   const [volume, setVolume] = useState(0);
   const [showConversation, setShowConversation] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [transcriptVisible, setTranscriptVisible] = useState(true);
+  const [chatMode, setChatMode] = useState(false);
+  const [chatInput, setChatInput] = useState("");
   // Vapi client
   const vapiRef = useRef<Vapi | null>(null);
   const VAPI_PUBLIC_KEY = (import.meta as any).env.VITE_VAPI_PUBLIC_KEY as string | undefined;
@@ -64,6 +68,11 @@ export function PremiumAIAssistant() {
     return () => { v.stop(); vapiRef.current = null; };
   }, []);
 
+  // When entering chat mode, mute the mic to avoid accidental voice input
+  useEffect(() => {
+    try { vapiRef.current?.setMuted?.(chatMode); } catch {}
+  }, [chatMode]);
+
   const handleVoiceStart = async () => {
     if (!vapiRef.current) return;
     try {
@@ -87,6 +96,29 @@ export function PremiumAIAssistant() {
   const handleVoiceEnd = () => {
     setMessages(prev => [...prev, { id: 'sys-'+Date.now(), content: 'Stopping call…', isUser: false, timestamp: new Date() }]);
     vapiRef.current?.stop();
+  };
+
+  const sendChatMessage = async () => {
+    const text = chatInput.trim();
+    if (!text) return;
+    try {
+      if (!vapiRef.current) return;
+      // Ensure a session is active for text chat
+      if (!isListening) {
+        await handleVoiceStart();
+      }
+      const id = 'user-'+Date.now();
+      setMessages(prev => [...prev, { id, content: text, isUser: true, timestamp: new Date() }]);
+      setChatInput("");
+      setIsProcessing(true);
+      vapiRef.current.send({
+        type: 'add-message',
+        message: { role: 'user', content: text },
+        triggerResponseEnabled: true,
+      });
+    } catch (e) {
+      setMessages(prev => [...prev, { id: 'err-'+Date.now(), content: `Send failed: ${String(e)}` , isUser: false, timestamp: new Date() }]);
+    }
   };
 
   return (
@@ -189,9 +221,27 @@ export function PremiumAIAssistant() {
               </div>
             </div>
 
-            {/* Right: conversation maximized with New Chat */}
+            {/* Right: conversation maximized with controls */}
             <div className="w-full">
-              <div className="flex justify-end mb-3">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2 text-white/80">
+                    <span className="text-sm">Show transcript</span>
+                    <Switch
+                      checked={transcriptVisible}
+                      onCheckedChange={(v) => setTranscriptVisible(!!v)}
+                      aria-label="Toggle transcript visibility"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 text-white/80">
+                    <span className="text-sm">Chat mode</span>
+                    <Switch
+                      checked={chatMode}
+                      onCheckedChange={(v) => setChatMode(!!v)}
+                      aria-label="Toggle chat mode"
+                    />
+                  </div>
+                </div>
                 <Button
                   variant="secondary"
                   onClick={() => {
@@ -200,12 +250,40 @@ export function PremiumAIAssistant() {
                     setIsProcessing(false);
                     setMessages([{ id: '1', content: "Welcome! I'm your AI assistant. Touch the globe and speak to me naturally.", isUser: false, timestamp: new Date() }]);
                     setShowConversation(false);
+                    setChatMode(false);
                   }}
                 >
                   New Chat
                 </Button>
               </div>
-              <PremiumConversation messages={messages} isVisible={true} />
+              <PremiumConversation messages={messages} isVisible={transcriptVisible} />
+              <AnimatePresence>
+                {chatMode && (
+                  <motion.div
+                    key="chat-input"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="mt-3 backdrop-blur-md bg-white/5 border border-white/10 rounded-xl p-2 flex items-center gap-2"
+                  >
+                    <input
+                      className="flex-1 bg-transparent text-white placeholder-white/50 outline-none px-3 py-2"
+                      placeholder={isListening ? 'Type a message to the assistant…' : 'Start will auto-connect and send…'}
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') sendChatMessage(); }}
+                    />
+                    <Button
+                      variant="secondary"
+                      disabled={!chatInput.trim()}
+                      onClick={sendChatMessage}
+                    >
+                      Send
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         ) : (

@@ -13,7 +13,16 @@ function Switch({
     <SwitchPrimitive.Root
       data-slot="switch"
       className={cn(
-        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-switch-background focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        // Premium gradient track
+        "peer inline-flex h-7 w-12 shrink-0 items-center rounded-full border outline-none transition-all",
+        // Unchecked: glass
+        "data-[state=unchecked]:bg-white/10 data-[state=unchecked]:backdrop-blur-sm border-white/15 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]",
+        // Checked: gradient + glow
+        "data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-purple-500 data-[state=checked]:to-pink-500 data-[state=checked]:shadow-[0_8px_22px_rgba(236,72,153,0.35)] border-transparent",
+        // Focus ring
+        "focus-visible:ring-[3px] focus-visible:ring-purple-400/35",
+        // Disabled
+        "disabled:cursor-not-allowed disabled:opacity-60",
         className,
       )}
       {...props}
@@ -21,7 +30,10 @@ function Switch({
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
         className={cn(
-          "bg-card dark:data-[state=unchecked]:bg-card-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0",
+          // White thumb with soft shadow; travel keeps 2px inset
+          "pointer-events-none block size-5 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-0 transition-transform will-change-transform",
+          // Track is w-12 (48px); thumb is 20px => checked offset = 48 - 20 - 2 = 26px
+          "translate-x-[2px] data-[state=checked]:translate-x-[26px]",
         )}
       />
     </SwitchPrimitive.Root>
