@@ -13,6 +13,7 @@ interface InteractiveGlobeProps {
 
 export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProcessing, volume = 0 }: InteractiveGlobeProps) {
   const [pulseAnimation, setPulseAnimation] = useState(false);
+  const isStarting = !isListening && isProcessing; // starting the call before connected
 
   useEffect(() => {
     if (isListening || isProcessing) {
@@ -94,8 +95,21 @@ export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProc
         >
           <Component031 />
         </motion.div>
-        
-        {/* Voice state overlay removed as requested */}
+
+        {/* Starting overlay */}
+        {isStarting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            <div className="px-4 py-2 rounded-full bg-black/50 text-white text-sm border border-white/15 backdrop-blur-md flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-pink-400 animate-pulse" />
+              <span>Starting voice chat…</span>
+            </div>
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Instruction text */}
@@ -105,11 +119,13 @@ export function InteractiveGlobe({ onVoiceStart, onVoiceEnd, isListening, isProc
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
-        {isListening 
-          ? "Listening... Tap to stop" 
-          : isProcessing 
-            ? "Processing your message..." 
-            : "Tap the globe to start talking to our experts instantly"
+        {isListening
+          ? "Listening... Tap to stop"
+          : isStarting
+            ? "Starting voice chat…"
+            : isProcessing
+              ? "Processing your message..."
+              : "Tap the globe to start talking to our experts instantly"
         }
       </motion.p>
     </div>

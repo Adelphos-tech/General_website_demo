@@ -4,7 +4,7 @@ import { InteractiveGlobe } from './InteractiveGlobe';
 import { PremiumConversation } from './PremiumConversation';
 import { Button } from './ui/button';
 import { Switch } from './ui/switch';
-import { Settings, Menu, X } from 'lucide-react';
+import { Settings, Menu, X, Bell, BellOff } from 'lucide-react';
 import Vapi from '@vapi-ai/web';
 
 interface ChatMessage {
@@ -32,6 +32,17 @@ export function PremiumAIAssistant() {
   const [transcriptVisible, setTranscriptVisible] = useState(true);
   const [chatMode, setChatMode] = useState(false);
   const [chatInput, setChatInput] = useState("");
+  const [chimeEnabled, setChimeEnabled] = useState(false);
+  // Persist chime preference across sessions (shared key with sidebar)
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('assistant_chime_enabled');
+      if (v !== null) setChimeEnabled(v === '1' || v === 'true');
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem('assistant_chime_enabled', chimeEnabled ? '1' : '0'); } catch {}
+  }, [chimeEnabled]);
   // Vapi client
   const vapiRef = useRef<Vapi | null>(null);
   const VAPI_PUBLIC_KEY = (import.meta as any).env.VITE_VAPI_PUBLIC_KEY as string | undefined;
@@ -47,7 +58,7 @@ export function PremiumAIAssistant() {
       undefined,
       { avoidEval: true, alwaysIncludeMicInPermissionPrompt: true },
     );
-    v.on('call-start', () => { setIsListening(true); setIsProcessing(false); setShowConversation(true); });
+    v.on('call-start', () => { setIsListening(true); setIsProcessing(false); setShowConversation(true); if (chimeEnabled) try { playChime(); } catch {} });
     v.on('call-end', () => { setIsListening(false); setIsProcessing(false); });
     v.on('speech-start', () => setIsProcessing(true));
     v.on('speech-end', () => setIsProcessing(false));
@@ -91,6 +102,25 @@ export function PremiumAIAssistant() {
     } catch (e) {
       setIsProcessing(false);
     }
+  };
+
+  // Subtle connect chime (muted by default)
+  const playChime = async () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(880, ctx.currentTime);
+      o.frequency.linearRampToValueAtTime(1320, ctx.currentTime + 0.12);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
+      o.connect(g).connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.25);
+      setTimeout(() => { try { ctx.close(); } catch {} }, 300);
+    } catch {}
   };
 
   const handleVoiceEnd = () => {
@@ -166,6 +196,16 @@ export function PremiumAIAssistant() {
           </motion.h1>
           
           <div className="flex gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white/70 hover:text-white hover:bg-white/10"
+              onClick={() => setChimeEnabled(v => !v)}
+              title={chimeEnabled ? 'Disable connect chime' : 'Enable connect chime'}
+              aria-label={chimeEnabled ? 'Disable connect chime' : 'Enable connect chime'}
+            >
+              {chimeEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+            </Button>
             <Button
               variant="ghost"
               size="icon"

@@ -55,6 +55,34 @@
 }
 .assistant-toggle { display:flex; align-items:center; gap: 8px; color: rgba(255,255,255,0.85); font-size: 12px; }
 
+/* Error banner */
+.assistant-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 6px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #fee2e2;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+.assistant-alert .msg { font-size: 12px; line-height: 1.35; color: #ffe5e5; }
+.assistant-alert .actions { display: flex; gap: 8px; }
+.assistant-alert .retry,
+.assistant-alert .dismiss {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.assistant-alert .retry:hover { background: rgba(16, 185, 129, 0.25); border-color: rgba(16,185,129,0.35); }
+.assistant-alert .dismiss:hover { background: rgba(255,255,255,0.16); }
+
 /* Labeled switch inside the track for Voice/Chat */
 .switch-labeled { position: relative; display: inline-block; }
 .switch-labeled [data-slot="switch"] { position: relative; cursor: pointer; z-index: 2; }

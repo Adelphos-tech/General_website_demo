@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Switch } from '../untitled/components/ui/switch';
 import { Button } from '../untitled/components/ui/button';
-import { MessageSquare, Send, Loader2 } from 'lucide-react';
+import { MessageSquare, Send, Loader2, Bell, BellOff } from 'lucide-react';
 import Vapi from '@vapi-ai/web';
 import { InteractiveGlobe } from '../untitled/components/InteractiveGlobe';
 import { PremiumConversation } from '../untitled/components/PremiumConversation';
@@ -27,6 +27,18 @@ export default function AssistantSidebar() {
   const chatModeRef = useRef(chatMode);
   useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]);
   const [chatInput, setChatInput] = useState("");
+  const [chimeEnabled, setChimeEnabled] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
+  // Persist chime preference across sessions
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('assistant_chime_enabled');
+      if (v !== null) setChimeEnabled(v === '1' || v === 'true');
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem('assistant_chime_enabled', chimeEnabled ? '1' : '0'); } catch {}
+  }, [chimeEnabled]);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [bottomReserve, setBottomReserve] = useState(120);
   const VAPI_PUBLIC_KEY = (import.meta as any).env.VITE_VAPI_PUBLIC_KEY as string | undefined;
@@ -52,11 +64,23 @@ export default function AssistantSidebar() {
       undefined,
       { avoidEval: true, alwaysIncludeMicInPermissionPrompt: true },
     );
-    v.on('call-start', () => { setIsListening(true); setIsProcessing(false); });
+    v.on('call-start', () => { setIsListening(true); setIsProcessing(false); setLastError(null); });
     v.on('call-end', () => { setIsListening(false); setIsProcessing(false); });
     v.on('speech-start', () => setIsProcessing(true));
     v.on('speech-end', () => setIsProcessing(false));
     v.on('volume-level', (lvl: number) => setVolume(Math.max(0, Math.min(1, lvl))));
+    v.on('call-start-failed', (e: any) => {
+      const details = safeStringify(e);
+      const msg = `Voice call failed to start. ${details ? `Details: ${details}` : ''}`.trim();
+      setMessages(prev => [...prev, { id: 'err-'+Date.now(), content: msg, isUser: false, timestamp: new Date() }]);
+      setIsProcessing(false);
+      setLastError('Could not start voice chat. Please check mic permissions and try again.');
+    });
+    v.on('error', (e: any) => {
+      const norm = normalizeError(e);
+      setMessages(prev => [...prev, { id: 'err-'+Date.now(), content: `Error: ${norm}`, isUser: false, timestamp: new Date() }]);
+      setLastError(norm);
+    });
     v.on('message', async (m: any) => {
       // In chat mode, we do not consume or forward Vapi events
       if (chatModeRef.current) return;
@@ -73,6 +97,40 @@ export default function AssistantSidebar() {
     vapiRef.current = v;
     return () => { v.stop(); vapiRef.current = null; };
   }, []);
+
+  // Subtle connect chime (muted by default)
+  const playChime = async () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(880, ctx.currentTime); // A5
+      o.frequency.linearRampToValueAtTime(1320, ctx.currentTime + 0.12); // quick glide up
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
+      o.connect(g).connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.25);
+      // Close context slightly later to allow sound to finish
+      setTimeout(() => { try { ctx.close(); } catch {} }, 300);
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (!vapiRef.current) return;
+    const onStart = () => { if (chimeEnabled) playChime(); };
+    vapiRef.current.on('call-start', onStart);
+    return () => { try { vapiRef.current?.off?.('call-start', onStart); } catch {} };
+  }, [chimeEnabled]);
+
+  const isSecure = (): boolean => {
+    try { return (window as any).isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost'; } catch { return true; }
+  };
+  const hasMediaDevices = (): boolean => {
+    try { return !!(navigator.mediaDevices && (navigator.mediaDevices as any).enumerateDevices); } catch { return false; }
+  };
 
   const start = async () => {
     if (!vapiRef.current) {
@@ -91,7 +149,23 @@ export default function AssistantSidebar() {
       return;
     }
     
+    // Preflight checks for better UX
+    if (!isSecure()) {
+      const msg = 'Microphone requires a secure context. Please use HTTPS or localhost.';
+      setMessages(prev => [...prev, { id: 'sec-'+Date.now(), content: msg, isUser: false, timestamp: new Date() }]);
+      setLastError(msg);
+      return;
+    }
+    if (!hasMediaDevices()) {
+      const msg = 'Microphone is unavailable. Ensure your browser allows mic access.';
+      setMessages(prev => [...prev, { id: 'mic-'+Date.now(), content: msg, isUser: false, timestamp: new Date() }]);
+      setLastError(msg);
+      return;
+    }
+
     try {
+      // Indicate starting state for the globe/UI until call-start
+      setIsProcessing(true);
       if (VAPI_ASSISTANT_ID && VAPI_ASSISTANT_ID !== 'YOUR_ASSISTANT_ID') await vapiRef.current.start(VAPI_ASSISTANT_ID);
       else await vapiRef.current.start({
         model: { provider: 'openai', model: 'gpt-4o', messages: [{ role: 'system', content: 'You are a property advisor for a real estate company.' }] },
@@ -101,15 +175,21 @@ export default function AssistantSidebar() {
       });
     } catch (error) {
       console.error('Error starting voice assistant:', error);
+      const norm = normalizeError(error);
       setMessages(prev => [
         ...prev,
         { 
           id: String(Date.now()), 
-          content: "There was an error starting the voice assistant. Please check your API keys.", 
+          content: `There was an error starting the voice assistant. ${norm}`, 
           isUser: false, 
           timestamp: new Date() 
         }
       ]);
+      // Friendly hints for common errors
+      if (/NotAllowedError|Permission/i.test(norm)) setLastError('Mic permission denied. Allow microphone and try again.');
+      else if (/NotFoundError/i.test(norm)) setLastError('No microphone found. Please connect a mic and retry.');
+      else setLastError('Could not start voice chat. Please try again.');
+      setIsProcessing(false);
     }
   };
   const stop = () => vapiRef.current?.stop();
@@ -239,6 +319,10 @@ export default function AssistantSidebar() {
     try { text = await res.text(); } catch { text = ''; }
     let json: any | undefined = undefined;
     try { if (text) json = JSON.parse(text); } catch {}
+    if (!res.ok) {
+      const msg = `Webhook error (${res.status}). ${text ? text.slice(0, 400) : ''}`.trim();
+      setLastError(msg);
+    }
     return { status: res.status, ok: res.ok, headers, text, json };
   };
 
@@ -291,11 +375,35 @@ export default function AssistantSidebar() {
           </div>
         </div>
         <div className="assistant-toolbar-right">
-          {isListening && (
-            <Button size="sm" variant="secondary" onClick={stop}>Stop</Button>
-          )}
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setChimeEnabled(v => !v)}
+              title={chimeEnabled ? 'Disable connect chime' : 'Enable connect chime'}
+              aria-label={chimeEnabled ? 'Disable connect chime' : 'Enable connect chime'}
+            >
+              {chimeEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            </Button>
+            {isListening && (
+              <Button size="sm" variant="secondary" onClick={stop}>Stop</Button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Error banner */}
+      {lastError && (
+        <div className="assistant-alert" role="alert">
+          <div className="msg">{lastError}</div>
+          <div className="actions">
+            {!chatMode && (
+              <button onClick={() => { setLastError(null); start(); }} className="retry">Try again</button>
+            )}
+            <button onClick={() => setLastError(null)} className="dismiss" aria-label="Dismiss">Dismiss</button>
+          </div>
+        </div>
+      )}
 
       {/* Globe area with smooth hide in chat mode */}
       <AnimatePresence initial={false}>
@@ -373,4 +481,16 @@ export default function AssistantSidebar() {
       </div>
     </div>
   );
+}
+// Helpers
+function safeStringify(v: any): string {
+  try { if (typeof v === 'string') return v; return JSON.stringify(v); } catch { return String(v); }
+}
+function normalizeError(e: any): string {
+  try {
+    if (!e) return 'Unknown error';
+    if (typeof e === 'string') return e;
+    if (e?.message) return e.message as string;
+    return JSON.stringify(e);
+  } catch { return 'Unknown error'; }
 }
