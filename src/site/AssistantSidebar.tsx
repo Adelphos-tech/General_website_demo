@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Switch } from '../untitled/components/ui/switch';
 import { Button } from '../untitled/components/ui/button';
-import { MessageSquare, Send, Loader2, Bell, BellOff } from 'lucide-react';
+import { MessageSquare, Send, Loader2 } from 'lucide-react';
 import Vapi from '@vapi-ai/web';
 import { InteractiveGlobe } from '../untitled/components/InteractiveGlobe';
 import { PremiumConversation } from '../untitled/components/PremiumConversation';
@@ -264,7 +264,17 @@ export default function AssistantSidebar() {
           const replyText = (() => {
             if (!resp) return 'Received.';
             if ((resp as any).json) {
-              try { return JSON.stringify((resp as any).json, null, 2); } catch {}
+              try {
+                const jsonData = (resp as any).json;
+                // Extract 'output' field if it exists
+                if (jsonData.output) return jsonData.output;
+                // Extract 'message' field if it exists
+                if (jsonData.message) return jsonData.message;
+                // Extract 'text' field if it exists
+                if (jsonData.text) return jsonData.text;
+                // Otherwise stringify the entire JSON
+                return JSON.stringify(jsonData, null, 2);
+              } catch {}
             }
             if (typeof resp === 'string') return resp as any;
             if ((resp as any).text && (resp as any).text.trim().length > 0) return (resp as any).text;
@@ -300,7 +310,7 @@ export default function AssistantSidebar() {
   };
 
   // Webhook: forward chat-mode messages to n8n
-  const WEBHOOK_URL = 'https://aicompany1.app.n8n.cloud/webhook/59688087-8e7a-4476-a549-16070fb38c99';
+  const WEBHOOK_URL = 'https://personalgpt.app.n8n.cloud/webhook/9a2e46f4-c133-44ed-967f-662ba6243b51';
   const postWebhook = async (payload: any): Promise<{ status: number; ok: boolean; headers: Record<string,string>; text: string; json?: any; } | null> => {
     const body = {
       source: 'assistant-sidebar',
@@ -376,15 +386,6 @@ export default function AssistantSidebar() {
         </div>
         <div className="assistant-toolbar-right">
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setChimeEnabled(v => !v)}
-              title={chimeEnabled ? 'Disable connect chime' : 'Enable connect chime'}
-              aria-label={chimeEnabled ? 'Disable connect chime' : 'Enable connect chime'}
-            >
-              {chimeEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
-            </Button>
             {isListening && (
               <Button size="sm" variant="secondary" onClick={stop}>Stop</Button>
             )}
