@@ -59,7 +59,7 @@ export default defineConfig({
     https: false,
   },
   build: {
-    outDir: 'dist',
+    outDir: 'docs',
     commonjsOptions: {
       include: [/client-sdk-web/, /node_modules/]
     }
