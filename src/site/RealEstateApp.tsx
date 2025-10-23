@@ -12,7 +12,7 @@ export default function RealEstateApp() {
         alignItems: 'stretch'
       }}>
         <iframe 
-          src="https://www.fortius.consulting/" 
+          src="https://en.wikipedia.org/" 
           style={{ 
             width: '100%', 
             height: '100%', 
@@ -20,7 +20,7 @@ export default function RealEstateApp() {
             display: 'block',
             background: '#ffffff'
           }}
-          title="Fortius Consulting"
+          title="Demo Website"
           sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation"
         />
       </main>
