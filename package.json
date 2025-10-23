@@ -8,7 +8,6 @@
     "scripts": {
         "dev": "vite",
         "build": "tsc && vite build",
-        "postbuild": "node scripts/postbuild.cjs",
         "preview": "vite preview"
     },
     "dependencies": {
