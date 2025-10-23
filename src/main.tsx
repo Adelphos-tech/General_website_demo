@@ -6,11 +6,15 @@ import './untitled/index.css';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import RealEstateApp from './site/RealEstateApp';
 
-const router = createBrowserRouter([
+const routes = [
   { path: '/', element: <RealEstateApp /> },
   { path: '/assistant', element: <App /> },
   { path: '/real-estate', element: <RealEstateApp /> },
-]);
+];
+
+const router = createBrowserRouter(routes, {
+  basename: import.meta.env.BASE_URL.replace(/\/$/, '') || undefined,
+});
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
